@@ -28,7 +28,7 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
       endpoint: currentConfig.endpoint,
       accessToken: currentConfig.accessToken,
     });
-    setIsLocalMode(currentConfig.isLocalMode);
+    setIsLocalMode(apiService.isLocalMode()); // Use dedicated getter method
   }, []);
 
   const validateForm = () => {
