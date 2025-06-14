@@ -1,0 +1,16 @@
+{
+  "name": "Gemini API Key Rotator GUI",
+  "short_name": "Gemini Rotator",
+  "description": "Manage and monitor your Gemini API keys with smart rotation and rate limiting",
+  "start_url": "./",
+  "display": "standalone",
+  "theme_color": "#3b82f6",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
