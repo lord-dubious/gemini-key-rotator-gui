@@ -66,12 +66,12 @@ curl https://your-project.deno.dev/health
 }
 
 # Test with access token (if configured)
-curl -H "X-Access-Token: YOUR_ACCESS_TOKEN" https://your-project.deno.dev/health
+curl -H "X-Access-Token: <ACCESS_TOKEN>" https://your-project.deno.dev/health
 
 # Test Gemini proxy
 curl -X POST "https://your-project.deno.dev/v1beta2/models/gemini-2.5-pro-exp-03-25:generateText" \
      -H "Content-Type: application/json" \
-     -H "X-Access-Token: YOUR_ACCESS_TOKEN" \
+     -H "X-Access-Token: <ACCESS_TOKEN>" \
      -d '{"prompt": {"text": "Hello, world!"}}'
 ```
 
@@ -180,8 +180,10 @@ resHeaders.set("Access-Control-Allow-Origin", "*"); // Restrict as needed
 
 ### GUI Security
 
+Security headers are configured for both platforms:
+
+**For Vercel (vercel.json):**
 ```json
-// In vercel.json / netlify.toml, security headers are configured:
 {
   "headers": [
     {
@@ -189,7 +191,7 @@ resHeaders.set("Access-Control-Allow-Origin", "*"); // Restrict as needed
       "value": "nosniff"
     },
     {
-      "key": "X-Frame-Options", 
+      "key": "X-Frame-Options",
       "value": "DENY"
     },
     {
@@ -198,6 +200,16 @@ resHeaders.set("Access-Control-Allow-Origin", "*"); // Restrict as needed
     }
   ]
 }
+```
+
+**For Netlify (netlify.toml):**
+```toml
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
 ```
 
 ## 📊 Monitoring Setup

@@ -92,8 +92,8 @@ The GUI connects to a Deno Edge Function that handles the actual API key rotatio
 ### 2. Example Environment Variables
 
 ```bash
-API_KEYS=AIzaSyA...,AIzaSyB...,AIzaSyC...
-ACCESS_TOKEN=your-secret-token-here
+API_KEYS=<API_KEY_1>,<API_KEY_2>,<API_KEY_3>
+ACCESS_TOKEN=<YOUR_SECRET_TOKEN>
 GEMINI_API_BASE_URL=https://generativelanguage.googleapis.com/v1beta2
 ```
 
@@ -104,7 +104,7 @@ GEMINI_API_BASE_URL=https://generativelanguage.googleapis.com/v1beta2
 curl https://your-project.deno.dev/health
 
 # Test with access token
-curl -H "X-Access-Token: YOUR_ACCESS_TOKEN" https://your-project.deno.dev/health
+curl -H "X-Access-Token: <ACCESS_TOKEN>" https://your-project.deno.dev/health
 ```
 
 ## 📱 Deployment Options
@@ -202,19 +202,19 @@ const {
 The Deno Edge Function provides these endpoints:
 
 ### Health Check
-```
+```http
 GET /health
 ```
 Returns system health and key status.
 
 ### Statistics
-```
+```http
 GET /stats
 ```
 Returns detailed usage statistics and recent logs.
 
 ### Gemini API Proxy
-```
+```http
 POST /v1beta2/models/gemini-2.5-pro-exp-03-25:generateText
 ```
 Proxies requests to Gemini API with automatic key rotation.

@@ -131,11 +131,13 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
   };
 
   const toggleMode = () => {
-    setIsLocalMode(!isLocalMode);
+    const newLocalMode = !isLocalMode;
+    setIsLocalMode(newLocalMode);
+    apiService.setLocalMode(newLocalMode); // Keep apiService in sync
     setTestResult(null);
     setGeminiTestResult(null);
     setIsTesting(false);
-    if (!isLocalMode) {
+    if (newLocalMode) {
       // Switching to local mode
       setConfig({ endpoint: '', accessToken: '' });
       setErrors({});

@@ -44,24 +44,24 @@ function App() {
     info
   } = useNotifications();
 
-  // Check if API is configured on startup
+  // Check if API is configured on startup (run once on mount)
   useEffect(() => {
     const config = apiService.getConfig();
     if (config.isLocalMode) {
       info(
-        'Welcome to Local Demo Mode!', 
+        'Welcome to Local Demo Mode!',
         'The app is running with simulated data. Switch to Remote API Mode in Settings to connect to your Deno Edge Function.',
         10000
       );
     } else if (!config.endpoint) {
       setShowSettings(true);
       info(
-        'Welcome!', 
+        'Welcome!',
         'Please configure your API endpoint to get started.',
         10000
       );
     }
-  }, [info]);
+  }, []); // Run once on mount only
 
   const {
     health,
