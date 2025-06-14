@@ -14,7 +14,7 @@ class LocalMockService {
   private apiKeys: ApiKey[] = [];
   private requestLogs: LogEntry[] = [];
   private isRunning = false;
-  private simulationInterval?: NodeJS.Timeout;
+  private simulationTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.loadFromStorage();
@@ -34,7 +34,7 @@ class LocalMockService {
           {
             id: generateId(),
             name: 'Demo Key 1',
-            key: 'AIzaSyDemo1234567890abcdef',
+            key: 'demo-key-1-FAKE-DO-NOT-USE',
             isActive: true,
             createdAt: Date.now() - 86400000, // 1 day ago
             requestCount: 45,
@@ -43,8 +43,8 @@ class LocalMockService {
           },
           {
             id: generateId(),
-            name: 'Demo Key 2', 
-            key: 'AIzaSyDemo0987654321fedcba',
+            name: 'Demo Key 2',
+            key: 'demo-key-2-FAKE-DO-NOT-USE',
             isActive: true,
             createdAt: Date.now() - 172800000, // 2 days ago
             requestCount: 32,
@@ -54,7 +54,7 @@ class LocalMockService {
           {
             id: generateId(),
             name: 'Demo Key 3',
-            key: 'AIzaSyDemo5555666677778888',
+            key: 'demo-key-3-FAKE-DO-NOT-USE',
             isActive: false,
             createdAt: Date.now() - 259200000, // 3 days ago
             requestCount: 78,
@@ -85,13 +85,28 @@ class LocalMockService {
 
   private startSimulation() {
     if (this.isRunning) return;
-    
     this.isRunning = true;
-    
-    // Simulate API requests every 5-15 seconds
-    this.simulationInterval = setInterval(() => {
-      this.simulateRequest();
-    }, Math.random() * 10000 + 5000);
+    this.runSimulationLoop();
+  }
+
+  private stopSimulation() {
+    this.isRunning = false;
+    if (this.simulationTimeoutId) {
+      clearTimeout(this.simulationTimeoutId);
+      this.simulationTimeoutId = null;
+    }
+  }
+
+  private runSimulationLoop() {
+    if (!this.isRunning) return;
+    this.simulateRequest();
+    const nextDelay = this.getRandomInterval();
+    this.simulationTimeoutId = setTimeout(() => this.runSimulationLoop(), nextDelay);
+  }
+
+  private getRandomInterval(): number {
+    // Random interval between 5-15 seconds
+    return Math.random() * 10000 + 5000;
   }
 
   private simulateRequest() {
@@ -306,10 +321,7 @@ class LocalMockService {
   }
 
   destroy(): void {
-    this.isRunning = false;
-    if (this.simulationInterval) {
-      clearInterval(this.simulationInterval);
-    }
+    this.stopSimulation();
   }
 }
 

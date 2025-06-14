@@ -4,9 +4,14 @@ import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 // --- Configuration ---
 // Expect API keys in an environment variable (comma-separated or JSON array)
 const KEY_ENV = Deno.env.get("API_KEYS") || "";
-const API_KEYS: string[] = KEY_ENV.startsWith("[") 
-  ? JSON.parse(KEY_ENV) 
+const API_KEYS: string[] = KEY_ENV.startsWith("[")
+  ? JSON.parse(KEY_ENV)
   : KEY_ENV.split(",").map(k => k.trim()).filter(k => k);
+
+// Fail fast when no API keys are provided
+if (API_KEYS.length === 0) {
+  throw new Error("No API_KEYS supplied to key rotator");
+}
 
 // Base URL for the Google Gemini API (adjust if needed)
 const DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta2";
@@ -69,11 +74,14 @@ serve(async (req: Request) => {
       forwardHeaders.set("content-type", req.headers.get("content-type")!);
     }
 
+    // Read the body once so it can be re-sent on every attempt
+    const rawBody = req.body ? await req.arrayBuffer() : undefined;
+
     // Forward the request to the Google API
     let response = await fetch(targetUrl.toString(), {
       method: req.method,
       headers: forwardHeaders,
-      body: req.body,
+      body: rawBody,
     });
 
     // If response indicates quota issue, try other keys
@@ -91,7 +99,7 @@ serve(async (req: Request) => {
       response = await fetch(targetUrl.toString(), {
         method: req.method,
         headers: forwardHeaders,
-        body: req.body,
+        body: rawBody,
       });
     }
 

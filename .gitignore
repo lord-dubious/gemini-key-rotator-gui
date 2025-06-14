@@ -146,11 +146,7 @@ build/
 ehthumbs.db
 Thumbs.db
 
-# Local development
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+
 
 # Temporary files
 *.tmp

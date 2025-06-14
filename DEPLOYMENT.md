@@ -59,19 +59,19 @@ curl https://your-project.deno.dev/health
 # Expected response:
 {
   "status": "healthy",
-  "timestamp": 1703123456789,
+  "timestamp": <timestamp>,  // dynamic value (milliseconds since epoch)
   "totalKeys": 3,
   "activeKeys": 3,
   "exhaustedKeys": 0
 }
 
 # Test with access token (if configured)
-curl -H "X-Access-Token: your-token" https://your-project.deno.dev/health
+curl -H "X-Access-Token: YOUR_ACCESS_TOKEN" https://your-project.deno.dev/health
 
 # Test Gemini proxy
 curl -X POST "https://your-project.deno.dev/v1beta2/models/gemini-2.5-pro-exp-03-25:generateText" \
      -H "Content-Type: application/json" \
-     -H "X-Access-Token: your-token" \
+     -H "X-Access-Token: YOUR_ACCESS_TOKEN" \
      -d '{"prompt": {"text": "Hello, world!"}}'
 ```
 

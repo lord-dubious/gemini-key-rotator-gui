@@ -235,6 +235,19 @@ class ApiService {
     if (enabled) {
       this.baseUrl = '';
       this.accessToken = '';
+      // Persist local mode in localStorage
+      try {
+        localStorage.setItem('rotator-config', JSON.stringify({ localMode: true }));
+      } catch (error) {
+        console.warn('Failed to save local mode config:', error);
+      }
+    } else {
+      // Remove or update the stored config to reflect remote mode
+      try {
+        localStorage.setItem('rotator-config', JSON.stringify({ localMode: false }));
+      } catch (error) {
+        console.warn('Failed to save remote mode config:', error);
+      }
     }
   }
 

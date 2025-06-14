@@ -1,4 +1,4 @@
-import { type ClassValue, clsx } from 'clsx';
+import clsx, { type ClassValue } from 'clsx';
 
 // Utility function for combining class names
 export function cn(...inputs: ClassValue[]) {
@@ -13,7 +13,7 @@ export function formatTimestamp(timestamp: number): string {
 // Format relative time (e.g., "2 minutes ago")
 export function formatRelativeTime(timestamp: number): string {
   const now = Date.now();
-  const diff = now - timestamp;
+  const diff = Math.max(0, now - timestamp);
   
   const seconds = Math.floor(diff / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -50,6 +50,10 @@ export function calculatePercentageChange(current: number, previous: number): nu
 
 // Generate unique ID
 export function generateId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for older browsers
   return Math.random().toString(36).substr(2, 9);
 }
 
@@ -74,7 +78,7 @@ export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
+  let timeout: ReturnType<typeof setTimeout>;
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
@@ -86,7 +90,7 @@ export function throttle<T extends (...args: any[]) => any>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {
-  let inThrottle: boolean;
+  let inThrottle = false;
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args);
@@ -96,9 +100,10 @@ export function throttle<T extends (...args: any[]) => any>(
   };
 }
 
-// Local storage helpers with error handling
+// Local storage helpers with error handling and SSR safety
 export const storage = {
   get: <T>(key: string, defaultValue: T): T => {
+    if (typeof window === 'undefined') return defaultValue;
     try {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : defaultValue;
@@ -106,24 +111,27 @@ export const storage = {
       return defaultValue;
     }
   },
-  
+
   set: <T>(key: string, value: T): void => {
+    if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
       console.warn('Failed to save to localStorage:', error);
     }
   },
-  
+
   remove: (key: string): void => {
+    if (typeof window === 'undefined') return;
     try {
       localStorage.removeItem(key);
     } catch (error) {
       console.warn('Failed to remove from localStorage:', error);
     }
   },
-  
+
   clear: (): void => {
+    if (typeof window === 'undefined') return;
     try {
       localStorage.clear();
     } catch (error) {

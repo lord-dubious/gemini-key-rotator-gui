@@ -104,7 +104,7 @@ GEMINI_API_BASE_URL=https://generativelanguage.googleapis.com/v1beta2
 curl https://your-project.deno.dev/health
 
 # Test with access token
-curl -H "X-Access-Token: your-token" https://your-project.deno.dev/health
+curl -H "X-Access-Token: YOUR_ACCESS_TOKEN" https://your-project.deno.dev/health
 ```
 
 ## 📱 Deployment Options

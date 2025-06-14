@@ -38,7 +38,7 @@ function StatusIndicator({ status, label }: { status: string; label: string }) {
 function MetricCard({ title, value, icon: Icon, color = 'primary' }: {
   title: string;
   value: number | string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color?: string;
 }) {
   const getColorClasses = () => {

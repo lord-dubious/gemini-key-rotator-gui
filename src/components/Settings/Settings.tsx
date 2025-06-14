@@ -17,6 +17,7 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
+  const [geminiTestResult, setGeminiTestResult] = useState<'success' | 'error' | 'pending' | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLocalMode, setIsLocalMode] = useState(true);
 
@@ -110,16 +111,19 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
     if (!isLocalMode && !validateForm()) return;
 
     setIsTesting(true);
+    setGeminiTestResult('pending');
     try {
       if (!isLocalMode) {
         // Temporarily update config for testing
         apiService.updateConfig(config.endpoint, config.accessToken);
       }
-      
+
       const response = await apiService.testGeminiRequest('Test message from GUI');
+      setGeminiTestResult('success');
       onNotification('success', 'Gemini Test', 'Successfully tested Gemini API through rotator');
       console.log('Gemini test response:', response);
     } catch (error) {
+      setGeminiTestResult('error');
       onNotification('error', 'Gemini Test', error instanceof Error ? error.message : 'Gemini test failed');
     } finally {
       setIsTesting(false);
@@ -128,6 +132,9 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
 
   const toggleMode = () => {
     setIsLocalMode(!isLocalMode);
+    setTestResult(null);
+    setGeminiTestResult(null);
+    setIsTesting(false);
     if (!isLocalMode) {
       // Switching to local mode
       setConfig({ endpoint: '', accessToken: '' });
@@ -305,6 +312,27 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
               <span>{isTesting ? 'Testing...' : 'Test Gemini'}</span>
             </button>
           </div>
+
+          {/* Gemini Test Result */}
+          {geminiTestResult && (
+            <div className="mt-3 flex items-center space-x-2">
+              {geminiTestResult === 'pending' && (
+                <span className="text-sm text-gray-600 dark:text-gray-400">Testing Gemini...</span>
+              )}
+              {geminiTestResult === 'success' && (
+                <>
+                  <CheckCircle className="h-4 w-4 text-success-500" />
+                  <span className="text-sm text-success-600 dark:text-success-400">Gemini test succeeded</span>
+                </>
+              )}
+              {geminiTestResult === 'error' && (
+                <>
+                  <AlertCircle className="h-4 w-4 text-error-500" />
+                  <span className="text-sm text-error-600 dark:text-error-400">Gemini test failed</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Save Button */}

@@ -34,7 +34,7 @@ const PlaceholderComponent = ({ title }: { title: string }) => (
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showSettings, setShowSettings] = useState(false);
-  const { isDark } = useTheme();
+  useTheme(); // Initialize theme
   const {
     notifications,
     removeNotification,
@@ -162,7 +162,7 @@ function App() {
   };
 
   return (
-    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${isDark ? 'dark' : ''}`}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="flex h-screen">
         {/* Sidebar */}
         {!showSettings && (

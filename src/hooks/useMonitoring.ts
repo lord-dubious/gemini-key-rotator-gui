@@ -24,7 +24,7 @@ export function useMonitoring(options: UseMonitoringOptions = {}) {
     stats: null,
   }));
 
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<ReturnType<typeof setInterval>>();
   const mountedRef = useRef(true);
 
   // Load cached data on mount
@@ -49,11 +49,13 @@ export function useMonitoring(options: UseMonitoringOptions = {}) {
 
   const fetchData = useCallback(async (showLoading = true) => {
     if (!apiService.isConfigured()) {
+      const errorMessage = 'API endpoint not configured';
       setState(prev => ({
         ...prev,
-        error: 'API endpoint not configured',
+        error: errorMessage,
         isLoading: false,
       }));
+      onError?.(errorMessage);
       return;
     }
 
