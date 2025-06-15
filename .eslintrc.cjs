@@ -15,8 +15,22 @@ module.exports = {
       { allowConstantExport: true },
     ],
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-    '@typescript-eslint/no-explicit-any': 'off', // Allow any for utility functions and API responses
+    '@typescript-eslint/no-explicit-any': 'warn', // Re-enabled with targeted overrides below
     'prefer-const': 'error',
     'no-var': 'error',
   },
+  overrides: [
+    {
+      // Allow 'any' in utility functions, API services, and type definitions where it's necessary
+      files: [
+        'src/utils/**/*.ts',
+        'src/services/**/*.ts',
+        'src/types/**/*.ts',
+        'deno-edge/**/*.ts'
+      ],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+      },
+    },
+  ],
 }
