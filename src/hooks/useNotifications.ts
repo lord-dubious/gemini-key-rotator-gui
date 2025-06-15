@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { NotificationState, NotificationType } from '@/types';
 import { generateId } from '@/utils';
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState<NotificationState[]>([]);
+  const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const removeNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -28,9 +29,10 @@ export function useNotifications() {
 
     // Auto-remove notification after duration
     if (notification.duration && notification.duration > 0) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         removeNotification(notification.id);
       }, notification.duration);
+      timeouts.current.push(timer);
     }
 
     return notification.id;
@@ -38,6 +40,14 @@ export function useNotifications() {
 
   const clearAll = useCallback(() => {
     setNotifications([]);
+  }, []);
+
+  // Cleanup timers on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      timeouts.current.forEach(clearTimeout);
+      timeouts.current = [];
+    };
   }, []);
 
   // Convenience methods

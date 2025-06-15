@@ -7,6 +7,10 @@ interface UseMonitoringOptions {
   autoRefresh?: boolean;
   refreshInterval?: number;
   onError?: (error: string) => void;
+  // Alert thresholds
+  errorRateThreshold?: number; // Default: 0.5 (50%)
+  minLogsForErrorRate?: number; // Default: 10
+  slowResponseThreshold?: number; // Default: 5000ms
 }
 
 export function useMonitoring(options: UseMonitoringOptions = {}) {
@@ -14,6 +18,9 @@ export function useMonitoring(options: UseMonitoringOptions = {}) {
     autoRefresh = true,
     refreshInterval = 30000, // 30 seconds default
     onError,
+    errorRateThreshold = 0.5, // 50%
+    minLogsForErrorRate = 10,
+    slowResponseThreshold = 5000, // 5 seconds
   } = options;
 
   const [state, setState] = useState<DashboardState>(() => ({
@@ -57,7 +64,7 @@ export function useMonitoring(options: UseMonitoringOptions = {}) {
     const recentErrors = stats.recentLogs.filter(log => log.status >= 400).length;
     const errorRate = stats.recentLogs.length > 0 ? recentErrors / stats.recentLogs.length : 0;
 
-    if (errorRate > 0.5 && stats.recentLogs.length > 10) {
+    if (errorRate > errorRateThreshold && stats.recentLogs.length > minLogsForErrorRate) {
       onError?.(`High error rate detected: ${(errorRate * 100).toFixed(1)}%`);
     }
 
@@ -66,10 +73,10 @@ export function useMonitoring(options: UseMonitoringOptions = {}) {
       ? stats.recentLogs.reduce((sum, log) => sum + log.responseTime, 0) / stats.recentLogs.length
       : 0;
 
-    if (avgResponseTime > 5000) { // 5 seconds
+    if (avgResponseTime > slowResponseThreshold) {
       onError?.(`Slow response times detected: ${avgResponseTime.toFixed(0)}ms average`);
     }
-  }, [onError]);
+  }, [onError, errorRateThreshold, minLogsForErrorRate, slowResponseThreshold]);
 
   const fetchData = useCallback(async (showLoading = true) => {
     if (!apiService.isConfigured()) {
