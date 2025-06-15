@@ -7,6 +7,10 @@ interface UseMonitoringOptions {
   autoRefresh?: boolean;
   refreshInterval?: number;
   onError?: (error: string) => void;
+  // Alert thresholds
+  errorRateThreshold?: number; // Default: 0.5 (50%)
+  minLogsForErrorRate?: number; // Default: 10
+  slowResponseThreshold?: number; // Default: 5000ms
 }
 
 export function useMonitoring(options: UseMonitoringOptions = {}) {
@@ -14,6 +18,9 @@ export function useMonitoring(options: UseMonitoringOptions = {}) {
     autoRefresh = true,
     refreshInterval = 30000, // 30 seconds default
     onError,
+    errorRateThreshold = 0.5, // 50%
+    minLogsForErrorRate = 10,
+    slowResponseThreshold = 5000, // 5 seconds
   } = options;
 
   const [state, setState] = useState<DashboardState>(() => ({
@@ -46,6 +53,30 @@ export function useMonitoring(options: UseMonitoringOptions = {}) {
       mountedRef.current = false;
     };
   }, []);
+
+  const checkAlerts = useCallback((health: HealthStatus, stats: Statistics) => {
+    // Check for unhealthy status
+    if (health.status === 'unhealthy' || health.activeKeys === 0) {
+      onError?.('All API keys are exhausted or unavailable');
+    }
+
+    // Check for high error rates
+    const recentErrors = stats.recentLogs.filter(log => log.status >= 400).length;
+    const errorRate = stats.recentLogs.length > 0 ? recentErrors / stats.recentLogs.length : 0;
+
+    if (errorRate > errorRateThreshold && stats.recentLogs.length > minLogsForErrorRate) {
+      onError?.(`High error rate detected: ${(errorRate * 100).toFixed(1)}%`);
+    }
+
+    // Check for slow response times
+    const avgResponseTime = stats.recentLogs.length > 0
+      ? stats.recentLogs.reduce((sum, log) => sum + log.responseTime, 0) / stats.recentLogs.length
+      : 0;
+
+    if (avgResponseTime > slowResponseThreshold) {
+      onError?.(`Slow response times detected: ${avgResponseTime.toFixed(0)}ms average`);
+    }
+  }, [onError, errorRateThreshold, minLogsForErrorRate, slowResponseThreshold]);
 
   const fetchData = useCallback(async (showLoading = true) => {
     if (!apiService.isConfigured()) {
@@ -107,31 +138,7 @@ export function useMonitoring(options: UseMonitoringOptions = {}) {
 
       onError?.(errorMessage);
     }
-  }, [onError]);
-
-  const checkAlerts = useCallback((health: HealthStatus, stats: Statistics) => {
-    // Check for unhealthy status
-    if (health.status === 'unhealthy' || health.activeKeys === 0) {
-      onError?.('All API keys are exhausted or unavailable');
-    }
-
-    // Check for high error rates
-    const recentErrors = stats.recentLogs.filter(log => log.status >= 400).length;
-    const errorRate = stats.recentLogs.length > 0 ? recentErrors / stats.recentLogs.length : 0;
-    
-    if (errorRate > 0.5 && stats.recentLogs.length > 10) {
-      onError?.(`High error rate detected: ${(errorRate * 100).toFixed(1)}%`);
-    }
-
-    // Check for slow response times
-    const avgResponseTime = stats.recentLogs.length > 0
-      ? stats.recentLogs.reduce((sum, log) => sum + log.responseTime, 0) / stats.recentLogs.length
-      : 0;
-    
-    if (avgResponseTime > 5000) { // 5 seconds
-      onError?.(`Slow response times detected: ${avgResponseTime.toFixed(0)}ms average`);
-    }
-  }, [onError]);
+  }, [onError, checkAlerts]);
 
   // Auto-refresh effect
   useEffect(() => {

@@ -61,7 +61,7 @@ function App() {
         10000
       );
     }
-  }, []); // Run once on mount only
+  }, [info]); // Include info dependency
 
   const {
     health,
