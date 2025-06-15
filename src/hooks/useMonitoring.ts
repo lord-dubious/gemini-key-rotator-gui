@@ -47,6 +47,30 @@ export function useMonitoring(options: UseMonitoringOptions = {}) {
     };
   }, []);
 
+  const checkAlerts = useCallback((health: HealthStatus, stats: Statistics) => {
+    // Check for unhealthy status
+    if (health.status === 'unhealthy' || health.activeKeys === 0) {
+      onError?.('All API keys are exhausted or unavailable');
+    }
+
+    // Check for high error rates
+    const recentErrors = stats.recentLogs.filter(log => log.status >= 400).length;
+    const errorRate = stats.recentLogs.length > 0 ? recentErrors / stats.recentLogs.length : 0;
+
+    if (errorRate > 0.5 && stats.recentLogs.length > 10) {
+      onError?.(`High error rate detected: ${(errorRate * 100).toFixed(1)}%`);
+    }
+
+    // Check for slow response times
+    const avgResponseTime = stats.recentLogs.length > 0
+      ? stats.recentLogs.reduce((sum, log) => sum + log.responseTime, 0) / stats.recentLogs.length
+      : 0;
+
+    if (avgResponseTime > 5000) { // 5 seconds
+      onError?.(`Slow response times detected: ${avgResponseTime.toFixed(0)}ms average`);
+    }
+  }, [onError]);
+
   const fetchData = useCallback(async (showLoading = true) => {
     if (!apiService.isConfigured()) {
       const errorMessage = 'API endpoint not configured';
@@ -107,31 +131,7 @@ export function useMonitoring(options: UseMonitoringOptions = {}) {
 
       onError?.(errorMessage);
     }
-  }, [onError]);
-
-  const checkAlerts = useCallback((health: HealthStatus, stats: Statistics) => {
-    // Check for unhealthy status
-    if (health.status === 'unhealthy' || health.activeKeys === 0) {
-      onError?.('All API keys are exhausted or unavailable');
-    }
-
-    // Check for high error rates
-    const recentErrors = stats.recentLogs.filter(log => log.status >= 400).length;
-    const errorRate = stats.recentLogs.length > 0 ? recentErrors / stats.recentLogs.length : 0;
-    
-    if (errorRate > 0.5 && stats.recentLogs.length > 10) {
-      onError?.(`High error rate detected: ${(errorRate * 100).toFixed(1)}%`);
-    }
-
-    // Check for slow response times
-    const avgResponseTime = stats.recentLogs.length > 0
-      ? stats.recentLogs.reduce((sum, log) => sum + log.responseTime, 0) / stats.recentLogs.length
-      : 0;
-    
-    if (avgResponseTime > 5000) { // 5 seconds
-      onError?.(`Slow response times detected: ${avgResponseTime.toFixed(0)}ms average`);
-    }
-  }, [onError]);
+  }, [onError, checkAlerts]);
 
   // Auto-refresh effect
   useEffect(() => {

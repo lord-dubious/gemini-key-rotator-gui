@@ -5,6 +5,10 @@ import { generateId } from '@/utils';
 export function useNotifications() {
   const [notifications, setNotifications] = useState<NotificationState[]>([]);
 
+  const removeNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
   const addNotification = useCallback((
     type: NotificationType,
     title: string,
@@ -30,11 +34,7 @@ export function useNotifications() {
     }
 
     return notification.id;
-  }, []);
-
-  const removeNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  }, []);
+  }, [removeNotification]);
 
   const clearAll = useCallback(() => {
     setNotifications([]);
