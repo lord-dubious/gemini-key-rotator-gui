@@ -38,7 +38,7 @@ jobs:
         uses: denoland/deployctl@v1
         with:
           project: "lord-dubious-gemini-key-20"
-          entrypoint: "deno-edge/mod.ts"
+          entrypoint: "/deno-edge/mod.ts"
           root: "dist"
           
           
