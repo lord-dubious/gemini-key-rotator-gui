@@ -19,7 +19,6 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
   const [geminiTestResult, setGeminiTestResult] = useState<'success' | 'error' | 'pending' | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLocalMode, setIsLocalMode] = useState(true);
 
   // Load current configuration
   useEffect(() => {
@@ -28,18 +27,15 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
       endpoint: currentConfig.endpoint,
       accessToken: currentConfig.accessToken,
     });
-    setIsLocalMode(apiService.isLocalMode()); // Use dedicated getter method
   }, []);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!isLocalMode) {
-      if (!config.endpoint.trim()) {
-        newErrors.endpoint = 'API endpoint is required';
-      } else if (!validateUrl(config.endpoint)) {
-        newErrors.endpoint = 'Please enter a valid URL';
-      }
+    if (!config.endpoint.trim()) {
+      newErrors.endpoint = 'API endpoint is required';
+    } else if (!validateUrl(config.endpoint)) {
+      newErrors.endpoint = 'Please enter a valid URL';
     }
 
     setErrors(newErrors);
@@ -51,19 +47,15 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
 
     setIsLoading(true);
     try {
-      if (isLocalMode) {
-        apiService.setLocalMode(true);
-      } else {
-        // Update API service configuration
-        apiService.updateConfig(config.endpoint, config.accessToken);
-        
-        // Test the connection
-        const isConnected = await apiService.testConnection();
-        
-        if (!isConnected) {
-          onNotification('error', 'Connection Failed', 'Settings saved but unable to connect to the API endpoint');
-          return;
-        }
+      // Update API service configuration
+      apiService.updateConfig(config.endpoint, config.accessToken);
+
+      // Test the connection
+      const isConnected = await apiService.testConnection();
+
+      if (!isConnected) {
+        onNotification('error', 'Connection Failed', 'Settings saved but unable to connect to the API endpoint');
+        return;
       }
       
       onNotification('success', 'Settings Saved', 'Configuration updated successfully');
@@ -76,21 +68,15 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
   };
 
   const handleTest = async () => {
-    if (!isLocalMode && !validateForm()) return;
+    if (!validateForm()) return;
 
     setIsTesting(true);
     setTestResult(null);
 
     try {
-      let isConnected: boolean;
-      
-      if (isLocalMode) {
-        isConnected = await apiService.testConnection();
-      } else {
-        // Temporarily update config for testing
-        apiService.updateConfig(config.endpoint, config.accessToken);
-        isConnected = await apiService.testConnection();
-      }
+      // Temporarily update config for testing
+      apiService.updateConfig(config.endpoint, config.accessToken);
+      const isConnected = await apiService.testConnection();
       
       setTestResult(isConnected ? 'success' : 'error');
       
@@ -108,15 +94,13 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
   };
 
   const handleTestGemini = async () => {
-    if (!isLocalMode && !validateForm()) return;
+    if (!validateForm()) return;
 
     setIsTesting(true);
     setGeminiTestResult('pending');
     try {
-      if (!isLocalMode) {
-        // Temporarily update config for testing
-        apiService.updateConfig(config.endpoint, config.accessToken);
-      }
+      // Temporarily update config for testing
+      apiService.updateConfig(config.endpoint, config.accessToken);
 
       const response = await apiService.testGeminiRequest('Test message from GUI');
       setGeminiTestResult('success');
@@ -127,20 +111,6 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
       onNotification('error', 'Gemini Test', error instanceof Error ? error.message : 'Gemini test failed');
     } finally {
       setIsTesting(false);
-    }
-  };
-
-  const toggleMode = () => {
-    const newLocalMode = !isLocalMode;
-    setIsLocalMode(newLocalMode);
-    apiService.setLocalMode(newLocalMode); // Keep apiService in sync
-    setTestResult(null);
-    setGeminiTestResult(null);
-    setIsTesting(false);
-    if (newLocalMode) {
-      // Switching to local mode
-      setConfig({ endpoint: '', accessToken: '' });
-      setErrors({});
     }
   };
 
@@ -156,44 +126,7 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-6">
-        {/* Mode Toggle */}
-        <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                Operation Mode
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Choose between local demo mode or remote API endpoint
-              </p>
-            </div>
-            
-            <button
-              onClick={toggleMode}
-              className={cn(
-                "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                isLocalMode
-                  ? "bg-primary-100 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300"
-                  : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-              )}
-            >
-              <Monitor className="h-4 w-4" />
-              <span>{isLocalMode ? 'Local Demo Mode' : 'Remote API Mode'}</span>
-            </button>
-          </div>
-          
-          {isLocalMode && (
-            <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-              <p className="text-sm text-primary-700 dark:text-primary-300">
-                <strong>Local Demo Mode:</strong> The app is running with simulated data and mock API responses. 
-                Perfect for testing the interface without needing a deployed Deno Edge Function.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {!isLocalMode && (
-          <>
+        <>
             {/* API Endpoint */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -266,7 +199,7 @@ export function Settings({ onSave, onNotification }: SettingsProps) {
                 Connection Test
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {isLocalMode ? 'Test the local demo functionality' : 'Test your API endpoint configuration'}
+                Test your API endpoint configuration
               </p>
             </div>
             

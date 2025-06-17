@@ -84,9 +84,6 @@ export function Dashboard({ health, stats, error }: DashboardProps) {
           <p className="text-error-600 dark:text-error-400">
             {error}
           </p>
-          <p className="text-sm text-error-500 dark:text-error-500 mt-2">
-            The app is running in local demo mode with simulated data.
-          </p>
         </div>
       </div>
     );

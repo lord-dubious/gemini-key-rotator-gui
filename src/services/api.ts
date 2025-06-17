@@ -1,12 +1,10 @@
 import { HealthStatus, Statistics, ApiResponse } from '@/types';
 import { retry } from '@/utils';
-import { localMockService } from './localMockService';
 
 class ApiService {
   private baseUrl: string = '';
   private accessToken: string = '';
   private abortController: AbortController | null = null;
-  private useLocalMode: boolean = true; // Default to local mode
 
   constructor() {
     // Load configuration from localStorage
@@ -20,7 +18,6 @@ class ApiService {
         const parsed = JSON.parse(config);
         this.baseUrl = parsed.endpoint || '';
         this.accessToken = parsed.accessToken || '';
-        this.useLocalMode = !this.baseUrl; // Use local mode if no endpoint configured
       }
     } catch (error) {
       console.warn('Failed to load API configuration:', error);
@@ -30,7 +27,6 @@ class ApiService {
   public updateConfig(endpoint: string, accessToken?: string): void {
     this.baseUrl = endpoint.replace(/\/$/, ''); // Remove trailing slash
     this.accessToken = accessToken || '';
-    this.useLocalMode = !this.baseUrl; // Switch to remote mode if endpoint provided
     
     // Save to localStorage
     try {
@@ -108,10 +104,6 @@ class ApiService {
 
   // Health check endpoint
   public async getHealth(): Promise<HealthStatus> {
-    if (this.useLocalMode) {
-      return await localMockService.getHealth();
-    }
-
     const response = await retry(() => this.makeRequest<HealthStatus>('/health'));
     
     if (!response.success || !response.data) {
@@ -123,10 +115,6 @@ class ApiService {
 
   // Statistics endpoint
   public async getStatistics(): Promise<Statistics> {
-    if (this.useLocalMode) {
-      return await localMockService.getStatistics();
-    }
-
     const response = await retry(() => this.makeRequest<Statistics>('/stats'));
     
     if (!response.success || !response.data) {
@@ -139,10 +127,6 @@ class ApiService {
   // Test API connection
   public async testConnection(): Promise<boolean> {
     try {
-      if (this.useLocalMode) {
-        return await localMockService.testConnection();
-      }
-      
       await this.getHealth();
       return true;
     } catch {
@@ -152,10 +136,6 @@ class ApiService {
 
   // Test a Gemini API request through the rotator
   public async testGeminiRequest(prompt: string = 'Hello, world!'): Promise<any> {
-    if (this.useLocalMode) {
-      return await localMockService.testGeminiRequest(prompt);
-    }
-
     if (!this.baseUrl) {
       throw new Error('API endpoint not configured');
     }
@@ -185,74 +165,16 @@ class ApiService {
   }
 
   // Get current configuration
-  public getConfig(): { endpoint: string; accessToken: string; isLocalMode: boolean } {
+  public getConfig(): { endpoint: string; accessToken: string } {
     return {
       endpoint: this.baseUrl,
       accessToken: this.accessToken,
-      isLocalMode: this.useLocalMode,
     };
   }
 
   // Check if API is configured
   public isConfigured(): boolean {
-    return this.useLocalMode || Boolean(this.baseUrl);
-  }
-
-  // Local mode specific methods
-  public getLocalApiKeys() {
-    if (!this.useLocalMode) return [];
-    return localMockService.getApiKeys();
-  }
-
-  public addLocalApiKey(name: string, key: string) {
-    if (!this.useLocalMode) throw new Error('Not in local mode');
-    return localMockService.addApiKey(name, key);
-  }
-
-  public removeLocalApiKey(id: string) {
-    if (!this.useLocalMode) throw new Error('Not in local mode');
-    return localMockService.removeApiKey(id);
-  }
-
-  public toggleLocalApiKey(id: string) {
-    if (!this.useLocalMode) throw new Error('Not in local mode');
-    return localMockService.toggleApiKey(id);
-  }
-
-  public clearLocalLogs() {
-    if (!this.useLocalMode) throw new Error('Not in local mode');
-    localMockService.clearLogs();
-  }
-
-  public resetLocalStats() {
-    if (!this.useLocalMode) throw new Error('Not in local mode');
-    localMockService.resetStats();
-  }
-
-  // Switch between local and remote mode
-  public setLocalMode(enabled: boolean): void {
-    this.useLocalMode = enabled;
-    if (enabled) {
-      this.baseUrl = '';
-      this.accessToken = '';
-      // Persist local mode in localStorage
-      try {
-        localStorage.setItem('rotator-config', JSON.stringify({ localMode: true }));
-      } catch (error) {
-        console.warn('Failed to save local mode config:', error);
-      }
-    } else {
-      // Remove or update the stored config to reflect remote mode
-      try {
-        localStorage.setItem('rotator-config', JSON.stringify({ localMode: false }));
-      } catch (error) {
-        console.warn('Failed to save remote mode config:', error);
-      }
-    }
-  }
-
-  public isLocalMode(): boolean {
-    return this.useLocalMode;
+    return Boolean(this.baseUrl);
   }
 }
 
