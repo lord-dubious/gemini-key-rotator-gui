@@ -1,127 +1,101 @@
-// deno-lint-ignore-file no-explicit-any
+// deno-edge/mod.ts
+// Deno specific server entry point
+
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
+import { serveDir } from "https://deno.land/std@0.203.0/http/file_server.ts";
+import { AppConfig, EnvironmentProvider } from "../src/core-backend/config.ts";
+import { KeyManager } from "../src/core-backend/key-manager.ts";
+import { isAuthorized } from "../src/core-backend/auth.ts";
+import { handleRoutedRequest } from "../src/core-backend/request-handler.ts";
 
-// --- Configuration ---
-// Expect API keys in an environment variable (comma-separated or JSON array)
-const KEY_ENV = Deno.env.get("API_KEYS") || "";
-const API_KEYS: string[] = KEY_ENV.startsWith("[")
-  ? JSON.parse(KEY_ENV)
-  : KEY_ENV.split(",").map(k => k.trim()).filter(k => k);
+// Wrapper for Deno's environment variable access
+const denoEnvProvider: EnvironmentProvider = {
+  get: (key: string) => Deno.env.get(key),
+};
 
-// Fail fast when no API keys are provided
-if (API_KEYS.length === 0) {
-  throw new Error("No API_KEYS supplied to key rotator");
-}
+let appConfig: AppConfig;
+let keyManager: KeyManager;
 
-// Base URL for the Google Gemini API (adjust if needed)
-const DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta2";
-const API_BASE_URL = Deno.env.get("GEMINI_API_BASE_URL") || DEFAULT_BASE;
-
-// Optional: protect the edge function with a required header token (to prevent public abuse)
-const ACCESS_TOKEN = Deno.env.get("ACCESS_TOKEN");  // if set, incoming requests must have X-Access-Token header matching this
-
-// Rotation state
-let currentKeyIndex = 0;
-interface KeyState { exhaustedUntil?: number; }
-const keyStates: KeyState[] = API_KEYS.map(() => ({}));
-
-// Utility: get next active key index (skips keys marked exhausted)
-function getNextKeyIndex(): number | null {
-  const now = Date.now();
-  for (let i = 0; i < API_KEYS.length; i++) {
-    const idx = (currentKeyIndex + i) % API_KEYS.length;
-    const state = keyStates[idx];
-    if (!state.exhaustedUntil || state.exhaustedUntil < now) {
-      // Use this key (either not exhausted or cooldown expired)
-      currentKeyIndex = (idx + 1) % API_KEYS.length;  // advance index for next time
-      return idx;
-    }
+try {
+  appConfig = AppConfig.fromEnvironment(denoEnvProvider);
+  keyManager = new KeyManager(appConfig.apiKeys);
+  console.log(`Key rotator initialized with ${keyManager.getTotalKeys()} API key(s). Base URL: ${appConfig.geminiApiBaseUrl}`);
+  if (appConfig.accessToken) {
+    console.log("Access token protection is ENABLED.");
+  } else {
+    console.log("Access token protection is DISABLED.");
   }
-  return null; // all keys exhausted currently
+} catch (error) {
+  console.error("FATAL: Failed to initialize application configuration:", error);
+  // If config fails, the server can't run meaningfully.
+  // Deno Deploy will likely show logs or fail the deployment.
+  throw error; // Re-throw to ensure it's logged and potentially stops the server
 }
 
-// Serve HTTP requests
+const API_PREFIX = "/api";
+// Path to the static frontend files. Assuming 'dist' is at the project root,
+// and 'deno-edge' is a subdirectory of the project root.
+const STATIC_FILES_ROOT = "../dist";
+
 serve(async (req: Request) => {
   try {
-    // Optionally enforce access token
-    if (ACCESS_TOKEN) {
-      const provided = req.headers.get("X-Access-Token");
-      if (provided !== ACCESS_TOKEN) {
+    const url = new URL(req.url);
+
+    if (url.pathname.startsWith(API_PREFIX)) {
+      // API request
+      if (!isAuthorized(req.headers, appConfig.accessToken)) {
         return new Response("Unauthorized", { status: 401 });
       }
-    }
-
-    // Determine target URL (combine base URL + request path + query, then add API key)
-    const reqUrl = new URL(req.url);
-    const targetUrl = new URL(reqUrl.pathname + reqUrl.search, API_BASE_URL);
-    let keyIndex = getNextKeyIndex();
-    if (keyIndex === null) {
-      console.error("All API keys are exhausted – cannot fulfill request");
-      return new Response(`All API keys exhausted (quota exceeded).`, { status: 429 });
-    }
-    let apiKey = API_KEYS[keyIndex];
-    targetUrl.searchParams.set("key", apiKey);
-
-    // Prepare headers for forwarding (copy all except hop-by-hop and restricted headers)
-    const forwardHeaders = new Headers();
-    for (const [h, v] of req.headers) {
-      const lower = h.toLowerCase();
-      if (["host", "cookie", "authorization"].includes(lower)) continue;
-      forwardHeaders.set(h, v);
-    }
-    // Set content type if not already (to handle body passthrough correctly)
-    if (!forwardHeaders.has("content-type") && req.headers.has("content-type")) {
-      forwardHeaders.set("content-type", req.headers.get("content-type")!);
-    }
-
-    // Read the body once so it can be re-sent on every attempt
-    const rawBody = req.body ? await req.arrayBuffer() : undefined;
-
-    // Forward the request to the Google API
-    let response = await fetch(targetUrl.toString(), {
-      method: req.method,
-      headers: forwardHeaders,
-      body: rawBody,
-    });
-
-    // If response indicates quota issue, try other keys
-    let attemptCount = 1;
-    while ([401, 403, 429].includes(response.status) && attemptCount < API_KEYS.length) {
-      console.warn(`Key ${keyIndex} returned status ${response.status}. Switching API key...`);
-      // Mark current key as exhausted (cooldown: e.g. 1 hour from now)
-      keyStates[keyIndex] = { exhaustedUntil: Date.now() + 60 * 60 * 1000 };
-      // Choose next key and retry
-      keyIndex = getNextKeyIndex();
-      if (keyIndex === null) break; // no available key
-      apiKey = API_KEYS[keyIndex];
-      targetUrl.searchParams.set("key", apiKey);
-      attemptCount++;
-      response = await fetch(targetUrl.toString(), {
+      const newPathname = url.pathname.substring(API_PREFIX.length);
+      const internalUrl = new URL(newPathname + url.search, "http://localhost"); // Dummy base
+      const internalRequest = new Request(internalUrl.toString(), {
         method: req.method,
-        headers: forwardHeaders,
-        body: rawBody,
+        headers: req.headers,
+        body: req.body,
+        // @ts-ignore // Pass through redirect if Deno supports it on Request constructor
+        redirect: req.redirect,
       });
-    }
 
-    if ([401, 403, 429].includes(response.status)) {
-      // All keys exhausted or all attempts failed
-      console.error("All API keys exhausted or invalid. Returning error to client.");
-      // (Optional: trigger alert webhook or email here)
-      return new Response(`Error: All API keys exhausted or invalid. (${response.status})`, { status: 429 });
-    }
+      const response = await handleRoutedRequest(internalRequest, appConfig, keyManager);
 
-    // Forward the successful (or non-quota-error) response back to client
-    // Copy response headers and status
-    const resHeaders = new Headers(response.headers);
-    // Allow CORS (if needed for web clients)
-    resHeaders.set("Access-Control-Allow-Origin", "*");
-    // Return response with original status and headers
-    return new Response(response.body, {
-      status: response.status,
-      headers: resHeaders
-    });
-  } catch (err: any) {
-    console.error("Edge function error:", err);
-    return new Response("Internal error in key rotator", { status: 500 });
+      // CORS headers are currently set within handleRoutedRequest.
+      // If we wanted to control them here, we would do:
+      // const finalHeaders = new Headers(response.headers);
+      // finalHeaders.set("Access-Control-Allow-Origin", "*");
+      // return new Response(response.body, { status: response.status, statusText: response.statusText, headers: finalHeaders });
+
+      return response;
+
+    } else {
+      // Static file request
+      try {
+        const response = await serveDir(req, {
+          fsRoot: STATIC_FILES_ROOT,
+          urlRoot: "", // Serve from the root of the domain
+          showIndex: true, // Serve index.html for directory requests
+          quiet: true, // Don't log file serving operations from serveDir
+        });
+        // Add cache control headers for static assets if desired
+        // response.headers.set("Cache-Control", "public, max-age=3600"); // Example: 1 hour
+        return response;
+      } catch (e) {
+        if (e instanceof Deno.errors.NotFound) {
+          // If serveDir throws NotFound, or we want to ensure a 404 page from our static assets is served:
+          // Try to serve a custom 404.html if it exists in static assets, otherwise return generic 404
+          // For simplicity, just return a generic 404 if the primary serveDir fails.
+          // A more robust solution would involve checking e.status if serveDir sets it.
+          // Also, Deno.stat could be used to check for STATIC_FILES_ROOT/404.html and serve it.
+          return new Response("Not Found", { status: 404 });
+        }
+        console.error("Error serving static file:", e);
+        return new Response("Internal Server Error attempting to serve static file", { status: 500 });
+      }
+    }
+  } catch (err) {
+    // Catch-all for unexpected errors during request processing
+    console.error("Error in Deno request handling:", err);
+    return new Response("Internal Server Error", { status: 500 });
   }
 });
+
+console.log(`Deno edge function server started. API on ${API_PREFIX}, Static files from ${STATIC_FILES_ROOT}`);
