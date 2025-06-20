@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build:api": "tsc -p tsconfig.node.json",
+    "build": "tsc -p tsconfig.json && vite build && npm run build:api",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist build",
+    "dev:local": "npm run build && deno run --allow-net --allow-env --allow-read=./dist,./src/core-backend,./.env ./local-server.ts"
   },
   "dependencies": {
     "clsx": "^2.0.0",

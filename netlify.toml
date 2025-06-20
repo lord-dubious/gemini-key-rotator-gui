@@ -1,15 +1,25 @@
 [build]
   publish = "dist"
   command = "npm run build"
+  functions = "api" # Tell Netlify where our source serverless functions are
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "18" # Ensure a modern Node.js version for our function
 
+# This rule ensures that any path not matching a static file or a function
+# will serve the index.html, common for SPAs.
+# Netlify's order of operations:
+# 1. Static files in publish dir
+# 2. Functions
+# 3. Redirects/Rewrites
+# So, /api/index (or whatever the function is named by Netlify based on filename)
+# should be matched before this SPA redirect.
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
+# Security Headers (keeping existing ones)
 [[headers]]
   for = "/*"
   [headers.values]
@@ -17,10 +27,11 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    # CSP might need adjustment if new external sources are used by API/frontend
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self';"
 
 [[headers]]
-  for = "/static/*"
+  for = "/static/*" # Assuming Vite output might have a /static folder or similar pattern
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 

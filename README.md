@@ -1,8 +1,8 @@
 # 🔑 Gemini API Key Rotator GUI
 
-A comprehensive web application for managing and monitoring your Gemini API key rotation system. This GUI provides an intuitive interface to control the Deno Edge Function that rotates through multiple API keys to avoid rate limits.
+A comprehensive web application for managing and monitoring your Gemini API key rotation system. This application can be deployed in various modes, offering flexibility for different environments.
 
-![Dashboard Preview](https://via.placeholder.com/800x400/3b82f6/ffffff?text=Gemini+Key+Rotator+Dashboard)
+![Dashboard Preview](https://via.placeholder.com/800x400/3b82f6/ffffff?text=Gemini+Key+Rotator+Dashboard) <!-- Placeholder - consider updating with a real screenshot -->
 
 ## ✨ Features
 
@@ -19,273 +19,146 @@ A comprehensive web application for managing and monitoring your Gemini API key 
 - **Status Indicators** - Real-time health monitoring
 - **Usage Analytics** - Request patterns and response times
 - **Error Tracking** - Monitor and alert on issues
-- **Key Management** - Add, remove, and monitor API keys
+- **Key Management** - (If applicable, based on backend features) Add, remove, and monitor API keys
 
 ### 🔧 Technical Features
-- **TypeScript** - Full type safety and better development experience
-- **React 18** - Modern React with hooks and concurrent features
-- **Tailwind CSS** - Utility-first styling with dark mode
-- **Responsive Design** - Works perfectly on desktop and mobile
-- **PWA Ready** - Progressive Web App capabilities
-- **Deployment Ready** - Configured for Vercel, Netlify, and GitHub Pages
+- **TypeScript** - Full type safety
+- **React 18** - Modern React features
+- **Tailwind CSS** - Utility-first styling
+- **Multi-Mode Deployment** - Supports Deno Deploy, Vercel, Netlify, and local full-stack operation.
 
-## 🚀 Quick Start
+## 🚀 Modes of Operation & Deployment
+
+This application is designed to be flexible and can be run or deployed in several ways:
+
+1.  **Local Full Mode:** Run the entire application (frontend and Deno-powered backend) on your local machine. Ideal for development, testing, or personal use.
+2.  **Deno Deploy (Unified):** Deploy as a self-contained application where the Deno backend serves both the API (under `/api/`) and the frontend GUI.
+3.  **Node.js Serverless (Vercel/Netlify):** Deploy the frontend as a static site and the API backend as Node.js serverless functions, suitable for platforms like Vercel and Netlify.
+
+**For detailed instructions on each deployment mode, please see our [Comprehensive Deployment Guide](DEPLOYMENT.MD).**
+
+## 🏁 Getting Started (Local Development)
+
+This section guides you through running the **Local Full Mode**.
 
 ### Prerequisites
-- Node.js 18+
-- npm or yarn
-- A deployed Deno Edge Function (see [Deno Setup](#deno-edge-function-setup))
+-   Node.js (v18+ recommended, for `npm` and frontend build tools)
+-   Deno CLI (v1.30+ recommended, for the local Deno server)
+-   Git
 
-### Installation
+### Installation & Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/lord-dubious/gemini-key-rotator-gui.git
-   cd gemini-key-rotator-gui
-   ```
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/lord-dubious/gemini-key-rotator-gui.git # Or your fork
+    cd gemini-key-rotator-gui
+    ```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+2.  **Install frontend dependencies:**
+    ```bash
+    npm install
+    ```
 
-3. **Start development server**
-   ```bash
-   npm run dev
-   ```
+3.  **Configure local environment variables:**
+    *   Copy the example `.env` file:
+        ```bash
+        cp .env.example .env
+        ```
+    *   Edit the new `.env` file and add your `API_KEYS`. You can also set `GEMINI_API_BASE_URL` and `ACCESS_TOKEN` if needed.
+        ```env
+        # .env
+        API_KEYS=your_api_key_1,your_api_key_2
+        # ACCESS_TOKEN=optional_secret_token
+        ```
 
-4. **Open your browser**
-   Navigate to `http://localhost:3000`
+### Running the Local Full Application
 
-### First Time Setup
+1.  **Start the local server and frontend:**
+    ```bash
+    npm run dev:local
+    ```
+    This command will:
+    *   Build the frontend application.
+    *   Start the local Deno server which serves both the frontend and the backend API.
 
-1. **Configure API Endpoint**
-   - Click the Settings button in the header
-   - Enter your Deno Edge Function URL
-   - Add your access token (if configured)
-   - Test the connection
+2.  **Open your browser:**
+    *   Navigate to `http://localhost:8000` (or the port specified in `local-server.ts`).
 
-2. **Start Monitoring**
-   - Return to the Dashboard
-   - View real-time metrics and key status
-   - Monitor API usage and performance
+### Frontend-Only Development (Optional)
 
-## 🏗️ Deno Edge Function Setup
-
-The GUI connects to a Deno Edge Function that handles the actual API key rotation. Follow these steps to deploy it:
-
-### 1. Deploy to Deno Deploy
-
-1. **Create a new project** on [Deno Deploy](https://dash.deno.com/)
-
-2. **Upload the edge function**
-   ```bash
-   # Use the provided mod.ts file in the deno-edge/ directory
-   deployctl deploy --project=your-project-name --prod deno-edge/mod.ts
-   ```
-
-3. **Configure environment variables**
-   - `API_KEYS`: Comma-separated list of your Gemini API keys
-   - `ACCESS_TOKEN`: (Optional) Secret token for API protection
-   - `GEMINI_API_BASE_URL`: (Optional) Custom Gemini API endpoint
-
-### 2. Example Environment Variables
-
+If you only want to work on the frontend UI components without running the local Deno backend (e.g., if you are pointing to a remote Deno Deploy or Serverless backend via the GUI settings):
 ```bash
-API_KEYS=<API_KEY_1>,<API_KEY_2>,<API_KEY_3>
-ACCESS_TOKEN=<YOUR_SECRET_TOKEN>
-GEMINI_API_BASE_URL=https://generativelanguage.googleapis.com/v1beta2
+npm run dev
 ```
+Then, open `http://localhost:5173` (or as indicated by Vite). You will need to configure the API endpoint in the GUI's settings page to point to your desired backend.
 
-### 3. Test Your Deployment
+## ⚙️ Configuration in the GUI
 
-```bash
-# Test health endpoint
-curl https://your-project.deno.dev/health
-
-# Test with access token
-curl -H "X-Access-Token: <ACCESS_TOKEN>" https://your-project.deno.dev/health
-```
-
-## 📱 Deployment Options
-
-### Vercel (Recommended)
-
-1. **Connect your repository** to Vercel
-2. **Configure build settings**:
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-3. **Deploy** - Automatic deployments on push to main
-
-### Netlify
-
-1. **Connect your repository** to Netlify
-2. **Use the provided** `netlify.toml` configuration
-3. **Deploy** - Automatic deployments on push to main
-
-### GitHub Pages
-
-1. **Enable GitHub Pages** in repository settings
-2. **Use GitHub Actions** - The workflow is already configured
-3. **Deploy** - Automatic deployments on push to main
-
-### Manual Deployment
-
-```bash
-# Build the project
-npm run build
-
-# Deploy the dist/ folder to your hosting provider
-```
-
-## 🎨 Customization
-
-### Theme Configuration
-
-The app supports three theme modes:
-- **Light** - Clean, bright interface
-- **Dark** - Easy on the eyes for extended use
-- **System** - Automatically matches your OS preference
-
-### Color Customization
-
-Edit `tailwind.config.js` to customize the color scheme:
-
-```javascript
-theme: {
-  extend: {
-    colors: {
-      primary: {
-        // Your custom primary colors
-      }
-    }
-  }
-}
-```
-
-### Component Customization
-
-All components are modular and can be easily customized:
-- `src/components/Dashboard/` - Dashboard components
-- `src/components/Layout/` - Layout and navigation
-- `src/components/Settings/` - Configuration components
-
-## 🔧 Configuration
-
-### API Service Configuration
-
-The app automatically saves your configuration to localStorage:
-
-```typescript
-{
-  endpoint: "https://your-project.deno.dev",
-  accessToken: "your-secret-token",
-  refreshInterval: 30000,
-  notifications: true
-}
-```
-
-### Monitoring Configuration
-
-Customize monitoring behavior in `src/hooks/useMonitoring.ts`:
-
-```typescript
-const {
-  autoRefresh = true,
-  refreshInterval = 30000, // 30 seconds
-  onError,
-} = options;
-```
+The GUI settings (accessible via the gear icon) allow you to:
+-   **View and Test API Endpoint:** For unified deployments (Local, Deno Deploy, Vercel/Netlify as configured), the API endpoint typically defaults to `/api` (relative to the GUI's origin) and should work automatically. You can use the settings page to test this connection.
+-   **Override API Endpoint:** You can manually set a different API endpoint URL if needed (e.g., to point the locally running GUI to a cloud-deployed backend). This setting is saved in `localStorage`.
+-   **Set Access Token:** If your backend is protected by an `ACCESS_TOKEN`, you can enter it here for the GUI to use in its API requests. This is also saved in `localStorage`.
 
 ## 📊 API Endpoints
 
-The Deno Edge Function provides these endpoints:
+When the application is running (locally or deployed), the backend API is accessible under the `/api/` path relative to the GUI's URL. Key endpoints include:
 
-### Health Check
-```http
-GET /health
-```
-Returns system health and key status.
-
-### Statistics
-```http
-GET /stats
-```
-Returns detailed usage statistics and recent logs.
-
-### Gemini API Proxy
-```http
-POST /v1beta2/models/gemini-2.5-pro-exp-03-25:generateText
-```
-Proxies requests to Gemini API with automatic key rotation.
+-   **Health Check:** `GET /api/health`
+    -   Returns system health, key status (total, active, exhausted).
+-   **Statistics:** `GET /api/stats`
+    -   Returns detailed usage statistics and recent logs (if logging is implemented in the backend).
+-   **Gemini API Proxy:** `POST /api/v1beta2/models/gemini-2.5-pro-exp-03-25:generateText` (and other Gemini API paths)
+    -   Proxies requests to the configured Google Gemini API, automatically handling key rotation. The path after `/api/` should match the standard Google Gemini API path structure.
 
 ## 🛡️ Security Features
 
 ### Client-Side Security
-- **CSP Headers** - Content Security Policy protection
-- **XSS Protection** - Cross-site scripting prevention
-- **Frame Options** - Clickjacking protection
-- **HTTPS Only** - Secure connections required
+- **CSP Headers** - Content Security Policy protection (configured in `netlify.toml`, similar for Vercel)
+- **XSS Protection** - Cross-site scripting prevention headers
+- **Frame Options** - Clickjacking protection headers
+- **HTTPS Only** - Enforced by cloud deployment platforms
 
 ### API Security
-- **Access Token** - Optional API protection
-- **CORS Configuration** - Controlled cross-origin access
-- **Rate Limiting** - Built-in request throttling
-- **Key Rotation** - Automatic failover on exhaustion
-
-## 🔍 Monitoring & Alerts
-
-### Real-time Monitoring
-- **Key Status** - Active, exhausted, error states
-- **Request Metrics** - Success rates, response times
-- **Usage Patterns** - Request frequency and distribution
-- **Error Tracking** - Failed requests and causes
-
-### Alert System
-- **Key Exhaustion** - When all keys are rate-limited
-- **High Error Rates** - When error rate exceeds threshold
-- **Slow Responses** - When response times are high
-- **Connection Issues** - When API is unreachable
+- **Access Token** - Optional API protection via `ACCESS_TOKEN` environment variable.
+- **CORS Configuration** - Handled by the backend to allow same-origin requests by default.
+- **Rate Limiting Logic** - The core backend includes logic to switch keys upon receiving rate limit errors (429) from the Gemini API.
 
 ## 🧪 Development
 
 ### Project Structure
 ```
+api/                    # Node.js serverless function entry point (for Vercel/Netlify)
+deno-edge/              # Deno Deploy entry point
+dist/                   # Frontend build output (generated)
+public/                 # Static assets for Vite
 src/
-├── components/          # React components
-│   ├── Dashboard/      # Dashboard components
-│   ├── Layout/         # Layout components
-│   └── Settings/       # Settings components
+├── components/         # React components
+├── core-backend/       # Shared backend logic (TypeScript, platform-agnostic)
 ├── hooks/              # Custom React hooks
-├── services/           # API services
+├── services/           # Frontend API service
 ├── types/              # TypeScript types
 └── utils/              # Utility functions
+local-server.ts         # Deno script for local full-stack server
 ```
 
 ### Available Scripts
 
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
-npm run type-check   # Run TypeScript checks
-```
-
-### Adding New Features
-
-1. **Create components** in appropriate directories
-2. **Add types** in `src/types/index.ts`
-3. **Update navigation** in `src/components/Layout/Sidebar.tsx`
-4. **Add routes** in `src/App.tsx`
+Refer to `package.json` for all scripts. Key scripts include:
+- `npm run dev`: Starts Vite dev server for frontend-only development.
+- `npm run build`: Builds frontend and Node.js API.
+- `npm run build:api`: Compiles Node.js API using `tsconfig.node.json`.
+- `npm run dev:local`: Builds frontend and starts the local Deno full-stack server.
+- `npm run lint`: Runs ESLint.
+- `npm run type-check`: Runs TypeScript checks for the frontend.
+- `npm run clean`: Removes build artifacts.
 
 ## 🤝 Contributing
 
-1. **Fork the repository**
-2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
-3. **Commit your changes** (`git commit -m 'Add amazing feature'`)
-4. **Push to the branch** (`git push origin feature/amazing-feature`)
-5. **Open a Pull Request**
+1.  **Fork the repository**
+2.  **Create a feature branch** (`git checkout -b feature/amazing-feature`)
+3.  **Commit your changes** (`git commit -m 'Add amazing feature'`)
+4.  **Push to the branch** (`git push origin feature/amazing-feature`)
+5.  **Open a Pull Request**
 
 ## 📄 License
 
@@ -293,16 +166,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **Google Gemini** - For the powerful AI API
-- **Deno Deploy** - For the edge computing platform
-- **React Team** - For the amazing framework
-- **Tailwind CSS** - For the utility-first CSS framework
+- Google Gemini
+- Deno Team & Community
+- React Team & Community
+- Tailwind CSS Team
+- Vite Team
 
 ## 📞 Support
 
-- **Issues** - [GitHub Issues](https://github.com/lord-dubious/gemini-key-rotator-gui/issues)
-- **Discussions** - [GitHub Discussions](https://github.com/lord-dubious/gemini-key-rotator-gui/discussions)
-- **Documentation** - [Wiki](https://github.com/lord-dubious/gemini-key-rotator-gui/wiki)
+- **Issues:** [GitHub Issues](https://github.com/lord-dubious/gemini-key-rotator-gui/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/lord-dubious/gemini-key-rotator-gui/discussions)
 
 ---
 

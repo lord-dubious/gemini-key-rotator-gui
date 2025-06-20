@@ -1,10 +1,32 @@
 {
   "compilerOptions": {
-    "composite": true,
+    "composite": true, // Keep if main tsconfig.json references it, useful for project references
     "skipLibCheck": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true
+    "module": "ESNext", // ESNext is generally good for modern Node.js on serverless
+    "moduleResolution": "bundler", // Or "node16"/"nodenext" if preferred for stricter ESM
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2022", // Target a reasonably modern Node.js version (LTS versions support ES2022+)
+    "lib": ["ES2022"],
+    "outDir": "./build/serverless", // Output directory for the compiled serverless functions
+    "rootDir": ".", // Consider root to correctly map paths like api/ and src/ if needed for imports
+    "baseUrl": ".", // Ensure baseUrl is set for any path mappings if used by API code
+    "paths": {
+      "@/*": ["./src/*"], // Allow API to use same @/ paths if it imports from src (might need adjustment)
+      "@core-backend/*": ["./src/core-backend/*"] // More specific path for core backend
+    },
+    "esModuleInterop": true, // Good for CJS/ESM interop if any dependencies require it
+    "strict": true, // Keep strict mode for backend code
+    "noEmit": false // Ensure JavaScript files are emitted
   },
-  "include": ["vite.config.ts"]
+  "include": [
+    "api/**/*.ts", // Include all .ts files in the api directory
+    "src/core-backend/**/*.ts" // Include core-backend as it's a direct dependency for type info and potentially bundling
+    // "vite.config.ts" // Can remove this if it's not meant to be part of this specific build output
+  ],
+  "exclude": [
+    "node_modules",
+    "dist", // Exclude frontend build output
+    "src" // Exclude the main 'src' for frontend, unless API needs to import types directly from frontend src
+          // and not just from core-backend. For now, assume core-backend is the interface.
+  ]
 }
